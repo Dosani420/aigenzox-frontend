@@ -69,7 +69,7 @@ function ImageToPdf() {
         formData.append("images", file);
       });
 
-      const response = await fetch("http://localhost:5000/api/image-to-pdf", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/image-to-pdf`, {
         method: "POST",
         body: formData,
       });

@@ -120,7 +120,7 @@ function ImageResizer() {
         formData.append("quality", quality);
 
         try {
-            const response = await fetch("http://localhost:5000/resize", {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/resize`, {
                 method: "POST",
                 body: formData,
             });
