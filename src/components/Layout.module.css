@@ -1,13 +1,35 @@
 .layout {
-  background: #f5f7fb;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .content {
   flex: 1;
-  animation: fadeIn 0.5s ease-out;
-  position: relative;
+}
+
+/* Custom Cursor */
+.cursor {
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  border-radius: 50%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.cursorRing {
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid rgba(16, 232, 136, 0.35);
+  border-radius: 50%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9998;
+  transition: border-color 0.2s;
 }

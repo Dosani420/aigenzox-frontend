@@ -1,10 +1,10 @@
-import { useState, useContext } from "react";
-import "../styles/imageResizer.css";
-import { ThemeContext } from "../context/ThemeContext";
-import { Image as ImageIcon, AlertCircle, CheckCircle, Loader, Rocket } from "lucide-react";
+import { useState, useRef } from "react";
+import styles from "./ImageConverter.module.css";
+import { Link } from "react-router-dom";
+import AdUnit from "../components/AdUnit";
+import { AlertCircle, CheckCircle, Loader, Download, ArrowRight, UploadCloud, X, Lock, ShieldCheck } from "lucide-react";
 
 function ImageConverter() {
-  const { darkMode } = useContext(ThemeContext);
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [format, setFormat] = useState("png");
@@ -14,6 +14,10 @@ function ImageConverter() {
   const [success, setSuccess] = useState("");
   const [originalSize, setOriginalSize] = useState(0);
   const [estimatedSize, setEstimatedSize] = useState(0);
+  const [convertedURL, setConvertedURL] = useState(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const fileInputRef = useRef(null);
 
   const handleImageChange = (e) => {
     const file = e.dataTransfer?.files[0] || e.target.files[0];
@@ -22,12 +26,21 @@ function ImageConverter() {
       setOriginalSize(file.size);
       setPreview(URL.createObjectURL(file));
       setError("");
+      setConvertedURL(null);
+      setSuccess("");
       estimateSize(file.size, format, quality);
     } else {
       setError("Please select a valid image file");
-      setImage(null);
-      setPreview(null);
+      clearImage();
     }
+  };
+
+  const clearImage = () => {
+    setImage(null);
+    setPreview(null);
+    setConvertedURL(null);
+    setSuccess("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const estimateSize = (size, fmt, qual) => {
@@ -87,14 +100,10 @@ function ImageConverter() {
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `converted-image.${format}`;
-      a.click();
+      setConvertedURL(url);
 
       const compression = ((1 - blob.size / originalSize) * 100).toFixed(1);
-      setSuccess(`✅ Converted to ${format.toUpperCase()}! Size: ${formatFileSize(blob.size)} (${compression}% smaller)`);
+      setSuccess(`Converted to ${format.toUpperCase()}! Smaller by ${compression}%.`);
     } catch (err) {
       setError(err.message || "An error occurred while converting");
     } finally {
@@ -102,160 +111,249 @@ function ImageConverter() {
     }
   };
 
+  const handleDownload = () => {
+    if (!convertedURL) return;
+    const a = document.createElement("a");
+    a.href = convertedURL;
+    a.download = `converted-image.${format}`;
+    a.click();
+  };
+
   const handleDragEnter = (e) => {
     e.preventDefault();
-    e.currentTarget.style.borderColor = darkMode ? "#8b5cf6" : "#6366f1";
+    setIsDragOver(true);
   };
-
   const handleDragLeave = (e) => {
     e.preventDefault();
-    e.currentTarget.style.borderColor = darkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(99, 102, 241, 0.3)";
+    setIsDragOver(false);
   };
-
   const handleDrop = (e) => {
     e.preventDefault();
-    e.currentTarget.style.borderColor = darkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(99, 102, 241, 0.3)";
+    setIsDragOver(false);
     handleImageChange({ dataTransfer: e.dataTransfer });
   };
 
+  // Determine active step
+  let currentStep = 1;
+  if (image) currentStep = 2;
+  if (convertedURL) currentStep = 4;
+  else if (loading) currentStep = 3;
+
   return (
-    <div className="resizer-container">
-      <div className="resizer-header">
-        <h1 style={{ color: darkMode ? "#c4b5fd" : "#6366f1" }}>Image Converter</h1>
-        <p style={{ color: darkMode ? "#cbd5e1" : "#666" }}>Convert and optimize your images to different formats</p>
-      </div>
+    <div className="page-wrap">
 
-      <div className="resizer-card" style={{ 
-        background: darkMode ? "rgba(15, 23, 42, 0.9)" : "rgba(255, 255, 255, 0.8)",
-        color: darkMode ? "#e2e8f0" : "#111827"
-      }}>
-        {/* Upload Section */}
-        <div className="upload-section"
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDrop}
-          style={{ transition: "all 0.3s ease" }}
-        >
-          <label htmlFor="file-input" className="file-label">
-            <div className="file-input-wrapper" style={{
-              borderColor: darkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(99, 102, 241, 0.3)",
-              background: darkMode ? "rgba(99, 102, 241, 0.1)" : "rgba(99, 102, 241, 0.05)",
-            }}>
-              <ImageIcon 
-                size={40} 
-                color={darkMode ? "#c4b5fd" : "#6366f1"}
-                className="upload-icon"
-              />
-              <span className="upload-text">
-                {preview ? "Change Image" : "Select Image"}
-              </span>
-              <span className="upload-hint">or drag and drop</span>
-            </div>
-          </label>
-          <input
-            id="file-input"
-            type="file"
-            accept="image/*"
-            className="file-input"
-            onChange={handleImageChange}
-          />
+      {/* 1. HERO */}
+      <div className={styles.toolHero}>
+        <div className={styles.breadcrumb}>
+          <Link to="/">Home</Link>
+          <span>›</span>
+          <a href="#tools">Tools</a>
+          <span>›</span>
+          <span style={{ color: "var(--text-soft)" }}>Image Converter</span>
         </div>
 
-        {/* Preview & File Info */}
-        {preview && (
-          <div className="preview-section">
-            <div className="preview">
-              <img src={preview} alt="preview" />
-            </div>
-            <div className="file-info">
-              <p><strong>Original:</strong> {formatFileSize(originalSize)}</p>
-              <p><strong>Estimated Output:</strong> {formatFileSize(estimatedSize)} 
-              {originalSize > 0 && ` (${((1 - estimatedSize / originalSize) * 100).toFixed(1)}% smaller)`}
-              </p>
+        <div className={styles.heroTop}>
+          <div className={`${styles.heroLeft} reveal`}>
+            <h1>Image <em>Converter</em></h1>
+            <p>Convert images between PNG, JPG, WebP, and GIF instantly — right in your browser. No upload, no waiting, 100% private.</p>
+            <div className={styles.heroBadges}>
+              <div className={styles.badge}>⚡ Instant</div>
+              <div className={styles.badge}><Lock size={14} /> 100% Private</div>
+              <div className={`${styles.badge} ${styles.blue}`}>PNG · JPG · WebP · GIF</div>
             </div>
           </div>
-        )}
 
-        {/* Format & Quality */}
-        <div className="format-quality-section">
-          <div className="size-input-group">
-            <label htmlFor="format-select" style={{ color: darkMode ? "#cbd5e1" : "#666" }}>Output Format</label>
-            <select
-              id="format-select"
-              value={format}
-              onChange={handleFormatChange}
-              disabled={loading}
-              style={{
-                padding: "10px 12px",
-                border: `2px solid ${darkMode ? "rgba(99, 102, 241, 0.3)" : "rgba(99, 102, 241, 0.2)"}`,
-                borderRadius: "10px",
-                fontSize: "15px",
-                transition: "all 0.3s ease",
-                background: darkMode ? "rgba(30, 27, 75, 0.6)" : "rgba(255, 255, 255, 0.5)",
-                color: darkMode ? "#e2e8f0" : "#111827",
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.5 : 1,
-              }}
+          <div className={`${styles.heroFormats} reveal`}>
+            <div className={styles.fmtPill}>PNG</div>
+            <div className={styles.fmtArrow}>⇄</div>
+            <div className={styles.fmtPill}>JPG</div>
+            <div className={styles.fmtArrow}>⇄</div>
+            <div className={styles.fmtPill}>WebP</div>
+            <div className={styles.fmtArrow}>⇄</div>
+            <div className={styles.fmtPill}>GIF</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Leaderboard AD */}
+      <div className="ad-row">
+        <AdUnit format="728x90" label="Advertisement · Leaderboard" />
+      </div>
+
+      {/* 2. STEPS BAR */}
+      <div className={styles.stepsBar}>
+        <div className={`${styles.step} ${currentStep >= 1 ? styles.active : ''}`}>
+          <div className={styles.stepCircle}>01</div>
+          <div className={styles.stepLbl}>Upload Image</div>
+        </div>
+        <div className={`${styles.step} ${currentStep >= 2 ? styles.active : ''}`}>
+          <div className={styles.stepCircle}>02</div>
+          <div className={styles.stepLbl}>Settings</div>
+        </div>
+        <div className={`${styles.step} ${currentStep >= 3 ? styles.active : ''}`}>
+          <div className={styles.stepCircle}>03</div>
+          <div className={styles.stepLbl}>Convert</div>
+        </div>
+        <div className={`${styles.step} ${currentStep >= 4 ? styles.active : ''}`}>
+          <div className={styles.stepCircle}>04</div>
+          <div className={styles.stepLbl}>Download</div>
+        </div>
+      </div>
+
+      {/* 3. MAIN WORKSPACE */}
+      <div className={styles.toolMain}>
+        {/* LEFT COMPONENT */}
+        <div>
+          {!preview ? (
+            <div
+              className={`${styles.uploadZone} ${isDragOver ? styles.drag : ''}`}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current.click()}
             >
-              <option value="png">PNG (Lossless)</option>
-              <option value="jpeg">JPG (Compressed)</option>
-              <option value="webp">WEBP (Modern)</option>
-            </select>
-          </div>
-
-          {(format === "jpeg" || format === "webp") && (
-            <div className="quality-slider">
-              <label style={{ color: darkMode ? "#cbd5e1" : "#666" }}>Quality: {quality}%</label>
               <input
-                type="range"
-                min="1"
-                max="100"
-                value={quality}
-                onChange={handleQualityChange}
-                disabled={loading}
-                style={{
-                  width: "100%",
-                  cursor: "pointer",
-                  accentColor: "#6366f1"
-                }}
+                ref={fileInputRef}
+                type="file"
+                className={styles.uploadInput}
+                accept="image/*"
+                onChange={handleImageChange}
               />
+              <span className={styles.uploadIconBig}><UploadCloud size={48} color="var(--accent)" strokeWidth={1.5} /></span>
+              <div className={styles.uploadTitle}>Drop your image here</div>
+              <div className={styles.uploadSub}>Or click to browse files from your device</div>
+              <button className={styles.btnUpload}>
+                Browse Files
+              </button>
+              <div className={styles.supported}>
+                <span className={styles.supFmt}>PNG</span>
+                <span className={styles.supFmt}>JPG</span>
+                <span className={styles.supFmt}>WebP</span>
+                <span className={styles.supFmt}>GIF</span>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.previewBox}>
+              <div className={styles.previewHeader}>
+                <span className={styles.previewLabel}>Original Image</span>
+                <button className={styles.btnClear} onClick={clearImage}>
+                  <X size={14} /> Remove
+                </button>
+              </div>
+              <div className={styles.previewImgWrap}>
+                <img src={preview} alt="Preview" />
+              </div>
+              <div className={styles.previewInfo}>
+                <span className={styles.infoItem}><strong>File:</strong> {image.name}</span>
+                <span className={styles.infoItem}><strong>Size:</strong> {formatFileSize(originalSize)}</span>
+              </div>
             </div>
           )}
+
+          {/* Messages */}
+          {error && (
+            <div className={`${styles.alertMsg} ${styles.alertError}`} style={{ marginTop: '20px' }}>
+              <AlertCircle size={16} /> {error}
+            </div>
+          )}
+          {success && (
+            <div className={`${styles.alertMsg} ${styles.alertSuccess}`} style={{ marginTop: '20px' }}>
+              <CheckCircle size={16} /> {success}
+            </div>
+          )}
+
         </div>
 
-        {/* Messages */}
-        {error && <div className="error-message" style={{ color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.3)", background: darkMode ? "rgba(127, 29, 29, 0.2)" : "rgba(239, 68, 68, 0.1)" }}>
-          <AlertCircle size={18} style={{ display: "inline", marginRight: "8px" }} />
-          {error}
-        </div>}
-        {success && <div className="success-message" style={{ color: "#22c55e", borderColor: "rgba(34, 197, 94, 0.3)", background: darkMode ? "rgba(20, 83, 45, 0.2)" : "rgba(34, 197, 94, 0.1)" }}>
-          <CheckCircle size={18} style={{ display: "inline", marginRight: "8px" }} />
-          {success}
-        </div>}
+        {/* RIGHT SETTINGS PANEL */}
+        <div className={styles.settingsPanel}>
+          <div className={styles.sTitle}>⚙️ Conversion Settings</div>
 
-        {/* Convert Button */}
-        <button 
-          className={`resize-btn ${loading ? "loading" : ""}`}
-          onClick={handleConvert}
-          disabled={loading}
-          style={{
-            background: loading ? "rgba(99, 102, 241, 0.6)" : "linear-gradient(135deg, #6366f1, #8b5cf6)",
-            color: "#fff"
-          }}
-        >
-          {loading ? (
-            <>
-              <Loader size={18} className="spinner" />
-              Converting...
-            </>
-          ) : (
-            <>
-              <Rocket size={18} /> Convert & Download
-            </>
+          <div className={styles.sGroup}>
+            <div className={styles.sLabel}>Output Format</div>
+            <div className={styles.sSelectWrap}>
+              <select
+                className={styles.sSelect}
+                value={format}
+                onChange={handleFormatChange}
+                disabled={!image || loading}
+              >
+                <option value="webp">WebP — Best for web</option>
+                <option value="jpeg">JPG — Smaller size</option>
+                <option value="png">PNG — Lossless quality</option>
+              </select>
+            </div>
+          </div>
+
+          {(format === 'jpeg' || format === 'webp') && (
+            <div className={styles.sGroup}>
+              <div className={styles.sLabel}>Quality — {quality}%</div>
+              <div className={styles.rangeRow}>
+                <input
+                  type="range"
+                  className={styles.rangeInput}
+                  min="10"
+                  max="100"
+                  value={quality}
+                  onChange={handleQualityChange}
+                  disabled={!image || loading}
+                />
+                <span className={styles.rangeVal}>{quality}%</span>
+              </div>
+            </div>
           )}
-        </button>
+
+          <button
+            className={styles.convertBtn}
+            onClick={handleConvert}
+            disabled={!image || loading || convertedURL}
+          >
+            {loading ? <Loader size={18} className="spinner" /> : "Convert Image"} <ArrowRight size={18} />
+          </button>
+
+          <div className={styles.orDivider}>or</div>
+
+          <button
+            className={styles.downloadBtn}
+            onClick={handleDownload}
+            disabled={!convertedURL}
+          >
+            <Download size={16} /> Download Converted File
+          </button>
+
+          <div style={{ fontSize: "0.75rem", color: "var(--muted)", textAlign: "center", lineHeight: "1.6" }}>
+            <ShieldCheck size={14} strokeWidth={2} /> Your image never leaves your device.<br />All processing is 100% in-browser.
+          </div>
+        </div>
       </div>
+
+      <div className="ad-row">
+        <AdUnit format="728x90" label="Advertisement · Leaderboard" />
+      </div>
+
+      {/* 4. EXPLANATION & FORMAT GRID */}
+      <div className={styles.infoSec}>
+        <div className="sec-label">Formats</div>
+        <h2 className="sec-title">Which format should you <span className="ac">choose?</span></h2>
+        <div className={styles.formatGrid}>
+          <div className={styles.fmtCard}>
+            <div className={styles.fmtName}>WebP</div>
+            <div className={styles.fmtDesc}>Google's modern format. 30% smaller than JPG with same quality. Best for web.</div>
+            <div className={styles.fmtBest}>Best for: Web & Apps</div>
+          </div>
+          <div className={styles.fmtCard}>
+            <div className={styles.fmtName}>JPG</div>
+            <div className={styles.fmtDesc}>Most compatible format. Great compression. Perfect for photos and sharing.</div>
+            <div className={styles.fmtBest}>Best for: Photos, Email</div>
+          </div>
+          <div className={styles.fmtCard}>
+            <div className={styles.fmtName}>PNG</div>
+            <div className={styles.fmtDesc}>Lossless quality with transparency support. Larger file size but pixel-perfect.</div>
+            <div className={styles.fmtBest}>Best for: Logos, UI</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

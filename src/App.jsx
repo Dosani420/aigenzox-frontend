@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
+import ScrollToTop from "./components/ScrollToTop";
 import Home from "./pages/Home";
 import ImageResizer from "./pages/ImageResizer";
 import ImageConverter from "./pages/ImageConverter";
@@ -11,6 +12,7 @@ import BackgroundRemover from "./pages/BackgroundRemover";
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />

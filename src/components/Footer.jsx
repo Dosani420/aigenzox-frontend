@@ -1,67 +1,61 @@
 import styles from "./Footer.module.css";
-import { useContext } from "react";
-import { ThemeContext } from "../context/ThemeContext";
-import { Code2, Rocket, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import AdUnit from "./AdUnit";
 
 function Footer() {
-  const { darkMode } = useContext(ThemeContext);
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer 
-      className={styles.footer}
-      style={{
-        borderTopColor: darkMode 
-          ? "rgba(99, 102, 241, 0.25)" 
-          : "rgba(99, 102, 241, 0.1)",
-      }}
-    >
-      <div className={styles.content}>
-        <div className={styles.section}>
-          <h3 className={styles.brand}>Tools Site</h3>
-          <p className={styles.tagline}>Free online image tools for everyone</p>
+    <footer className={styles.footer}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: "44px" }}>
+        <AdUnit format="728x90" label="Advertisement · 728×90 Footer" />
+      </div>
+
+      <div className={styles.footTop}>
+        <div className={styles.footBrand}>
+          <Link to="/" className={styles.logo} style={{ fontSize: "1.05rem" }}>
+            <div className={styles.logoIcon} style={{ width: "26px", height: "26px", fontSize: "0.75rem" }}>✦</div>
+            Pixel<em>Mind</em>
+          </Link>
+          <p>Free AI image tools for creators, developers, and everyone in between. No sign-up, no nonsense.</p>
         </div>
 
-        <div className={styles.section}>
-          <h4>Quick Links</h4>
-          <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/resize">Resizer</a></li>
-            <li><a href="/convert">Converter</a></li>
+        <div>
+          <div className={styles.footColH}>Tools</div>
+          <ul className={styles.footLinks}>
+            <li><Link to="/resize">Image Resizer</Link></li>
+            <li><Link to="/convert">Converter</Link></li>
+            <li><Link to="/compress">Compressor</Link></li>
+            <li><Link to="/bg-remover">BG Remover</Link></li>
+            <li><Link to="/qr-generator">QR Generator</Link></li>
+            <li><Link to="/image-to-pdf">Image to PDF</Link></li>
           </ul>
         </div>
 
-        <div className={styles.section}>
-          <h4>Features</h4>
-          <ul>
-            <li><a href="#features">Fast Processing</a></li>
-            <li><a href="#features">Secure & Private</a></li>
-            <li><a href="#features">No Sign-up</a></li>
+        <div>
+          <div className={styles.footColH}>Features</div>
+          <ul className={styles.footLinks}>
+            <li><a href="#">Fast Processing</a></li>
+            <li><a href="#">Secure & Private</a></li>
+            <li><a href="#">Batch Mode</a></li>
+            <li><a href="#">Free Forever</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div className={styles.footColH}>Company</div>
+          <ul className={styles.footLinks}>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Use</a></li>
+            <li><a href="#">Contact</a></li>
           </ul>
         </div>
       </div>
 
-      <div className={styles.divider}></div>
-
-      <div className={styles.bottom}>
-        <p>&copy; {currentYear} Tools Site. All rights reserved.</p>
-        <div className={styles.socials}>
-          <Code2 
-            size={20} 
-            color={darkMode ? "#c4b5fd" : "#6366f1"}
-            className={styles.socialIcon}
-          />
-          <Rocket 
-            size={20} 
-            color={darkMode ? "#c4b5fd" : "#6366f1"}
-            className={styles.socialIcon}
-          />
-          <Sparkles 
-            size={20} 
-            color={darkMode ? "#c4b5fd" : "#6366f1"}
-            className={styles.socialIcon}
-          />
-        </div>
+      <div className={styles.footBottom}>
+        <span>&copy; {currentYear} PixelMind. All rights reserved.</span>
+        <div className={styles.footMade}>Built with <em>✦</em> for creators</div>
       </div>
     </footer>
   );

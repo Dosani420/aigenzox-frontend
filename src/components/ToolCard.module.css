@@ -1,146 +1,99 @@
-.card-link {
+.cardLink {
   text-decoration: none;
   display: block;
-  height: 100%;
 }
 
-.card {
-  backdrop-filter: blur(14px);
-  background: rgba(255, 255, 255, 0.7);
+.toolCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 40px 30px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  padding: 32px;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  height: 100%;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
-  animation: slideInUp 0.6s ease-out;
+  cursor: none;
 }
 
-.card::before {
-  content: "";
+.toolCard::before {
+  content: '';
   position: absolute;
   top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(99, 102, 241, 0.1),
-    transparent
-  );
-  transition: left 0.5s ease;
-  pointer-events: none;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
-.card:hover::before {
-  left: 100%;
+.toolCard:hover {
+  transform: translateY(-8px);
+  background: var(--surface2);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 24px 48px -12px var(--shadow);
 }
 
-.card:hover {
-  transform: translateY(-12px) scale(1.02);
+:global([data-theme="light"]) .toolCard:hover {
+  border-color: var(--accent);
 }
 
-.iconContainer {
-  margin-bottom: 20px;
-  position: relative;
-  z-index: 1;
+.toolCard:hover::before {
+  opacity: 1;
 }
 
-.icon {
-  font-size: 56px;
-  display: inline-block;
-  animation: scaleIn 0.6s ease-out;
-  filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.2));
+.cardIcon {
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  background: rgba(16, 232, 136, 0.1);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  margin-bottom: 24px;
+  transition: transform 0.4s, background 0.4s;
 }
 
-.card:hover .icon {
-  animation: float 1s ease-in-out infinite;
+.toolCard:hover .cardIcon {
+  transform: scale(1.1) rotate(-4deg);
+  background: var(--accent);
+  color: #fff;
 }
 
-.title {
-  font-size: 22px;
+.cardTitle {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
   font-weight: 700;
+  color: var(--text);
   margin-bottom: 12px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  transition: transform 0.3s ease;
-  position: relative;
-  z-index: 1;
+  letter-spacing: -0.01em;
 }
 
-.card:hover .title {
-  transform: scale(1.05);
-}
-
-.description {
-  opacity: 0.75;
+.cardDesc {
+  font-size: 0.9rem;
+  color: var(--text-soft);
   line-height: 1.6;
-  margin-bottom: 20px;
+  margin-bottom: 32px;
   flex-grow: 1;
-  position: relative;
-  z-index: 1;
-  font-size: 15px;
-  letter-spacing: 0.3px;
 }
 
 .cta {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  color: inherit;
+  font-size: 0.85rem;
   font-weight: 600;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  position: relative;
-  z-index: 1;
-  cursor: pointer;
+  color: var(--accent);
   margin-top: auto;
+  opacity: 0.8;
+  transition: opacity 0.2s, transform 0.2s;
 }
 
-.cta:hover {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(139, 92, 246, 0.25));
-  border: 1px solid rgba(99, 102, 241, 0.6);
-  transform: translateX(4px);
+.toolCard:hover .cta {
+  opacity: 1;
+  transform: translateX(6px);
 }
-
-.ctaArrow {
-  display: inline-block;
-  font-size: 16px;
-  transition: transform 0.3s ease;
-}
-
-.cta:hover .ctaArrow {
-  transform: translateX(4px);
-}
-
-@media (max-width: 640px) {
-  .card {
-    padding: 30px 20px;
-  }
-
-  .icon {
-    font-size: 44px;
-  }
-
-  .title {
-    font-size: 18px;
-  }
-
-  .description {
-    font-size: 14px;
-  }
-}
-
-

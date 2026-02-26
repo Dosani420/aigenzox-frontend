@@ -1,7 +1,8 @@
-import { useState, useContext } from "react";
-import "../styles/imageResizer.css";
-import { ThemeContext } from "../context/ThemeContext";
-import { Upload, AlertCircle, CheckCircle, Loader, Rocket, Zap } from "lucide-react";
+import { useState, useRef } from "react";
+import styles from "./ImageCompressor.module.css";
+import { Link } from "react-router-dom";
+import AdUnit from "../components/AdUnit";
+import { AlertCircle, Zap, Loader, Download, Plus, Trash2, Lock, Target, Globe, Package } from "lucide-react";
 
 const COMPRESSION_PRESETS = [
   { name: "High Quality", level: 90 },
@@ -11,79 +12,73 @@ const COMPRESSION_PRESETS = [
 ];
 
 function ImageCompressor() {
-  const { darkMode } = useContext(ThemeContext);
-  const [image, setImage] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [files, setFiles] = useState([]);
   const [quality, setQuality] = useState(75);
   const [format, setFormat] = useState("webp");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [originalSize, setOriginalSize] = useState(0);
-  const [estimatedSize, setEstimatedSize] = useState(0);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [globalError, setGlobalError] = useState("");
 
-  const handleImageChange = (e) => {
-    const file = e.dataTransfer?.files[0] || e.target.files[0];
-    if (file && file.type.startsWith("image/")) {
-      setImage(file);
-      setOriginalSize(file.size);
-      setPreview(URL.createObjectURL(file));
-      setError("");
-      estimateSize(file.size, format, quality);
-    } else {
-      setError("Please select a valid image file");
-      setImage(null);
-      setPreview(null);
-    }
+  const fileInputRef = useRef(null);
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return "0 B";
+    if (bytes > 1048576) return (bytes / 1048576).toFixed(1) + " MB";
+    return (bytes / 1024).toFixed(1) + " KB";
   };
 
   const estimateSize = (size, fmt, qual) => {
     let sizeMultiplier = 0.8;
     if (fmt === "png") sizeMultiplier = 0.85;
     if (fmt === "jpeg") sizeMultiplier = 0.3 + (qual / 100) * 0.4;
-    if (fmt === "webp") sizeMultiplier = 0.25 + (qual / 100) * 0.3;
-    setEstimatedSize(Math.round(size * sizeMultiplier));
+    if (fmt === "webp" || fmt === "same") sizeMultiplier = 0.25 + (qual / 100) * 0.3;
+    return Math.round(size * sizeMultiplier);
   };
 
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+  const handleFilesAdded = (newFiles) => {
+    setGlobalError("");
+    const validFiles = Array.from(newFiles).filter(f => f.type.startsWith("image/"));
+
+    if (validFiles.length === 0) {
+      setGlobalError("Please select valid image files (JPG, PNG, WebP).");
+      return;
+    }
+
+    const fileObjects = validFiles.map(file => ({
+      file,
+      id: Math.random().toString(36).substr(2, 9),
+      preview: URL.createObjectURL(file),
+      originalSize: file.size,
+      status: 'pending', // pending | compressing | done | error
+      blob: null,
+      compressedSize: 0,
+      progress: 0
+    }));
+
+    setFiles(prev => [...prev, ...fileObjects]);
+  };
+
+  const removeFile = (id) => {
+    setFiles(prev => prev.filter(f => f.id !== id));
   };
 
   const handleQualityChange = (e) => {
-    const newQuality = parseInt(e.target.value);
-    setQuality(newQuality);
-    if (originalSize) estimateSize(originalSize, format, newQuality);
+    setQuality(parseInt(e.target.value));
   };
 
   const handleFormatChange = (e) => {
-    const newFormat = e.target.value;
-    setFormat(newFormat);
-    if (originalSize) estimateSize(originalSize, newFormat, quality);
+    setFormat(e.target.value);
   };
 
   const applyPreset = (preset) => {
     setQuality(preset.level);
-    if (originalSize) estimateSize(originalSize, format, preset.level);
   };
 
-  const handleCompress = async () => {
-    setError("");
-    setSuccess("");
-
-    if (!image) {
-      setError("Please select an image to compress");
-      return;
-    }
-
-    setLoading(true);
+  const handleCompressFile = async (fileObj) => {
+    setFiles(prev => prev.map(f => f.id === fileObj.id ? { ...f, status: 'compressing', progress: 30 } : f));
 
     const formData = new FormData();
-    formData.append("image", image);
-    formData.append("format", format);
+    formData.append("image", fileObj.file);
+    formData.append("format", format === "same" ? (fileObj.file.type.split('/')[1] || 'jpeg') : format);
     formData.append("quality", quality);
     formData.append("compress", true);
 
@@ -94,218 +89,253 @@ function ImageCompressor() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to compress image");
+        throw new Error("Failed to compress");
       }
 
+      setFiles(prev => prev.map(f => f.id === fileObj.id ? { ...f, progress: 80 } : f));
+
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
 
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `compressed.${format}`;
-      a.click();
-
-      const savings = ((1 - blob.size / originalSize) * 100).toFixed(1);
-      setSuccess(`✅ Compressed! ${formatFileSize(originalSize)} → ${formatFileSize(blob.size)} (${savings}% smaller)`);
+      setFiles(prev => prev.map(f =>
+        f.id === fileObj.id ? {
+          ...f,
+          status: 'done',
+          blob,
+          compressedSize: blob.size,
+          progress: 100
+        } : f
+      ));
     } catch (err) {
-      setError(err.message || "An error occurred while compressing");
-    } finally {
-      setLoading(false);
+      setFiles(prev => prev.map(f => f.id === fileObj.id ? { ...f, status: 'error', progress: 0 } : f));
     }
   };
 
-  const handleDragEnter = (e) => {
-    e.preventDefault();
-    e.currentTarget.style.borderColor = darkMode ? "#8b5cf6" : "#6366f1";
+  const handleCompressAll = async () => {
+    setGlobalError("");
+    const pendingFiles = files.filter(f => f.status === 'pending' || f.status === 'error');
+
+    if (pendingFiles.length === 0) return;
+
+    // Process sequentially or in parallel? Let's do parallel
+    await Promise.all(pendingFiles.map(f => handleCompressFile(f)));
   };
 
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.currentTarget.style.borderColor = darkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(99, 102, 241, 0.3)";
+  const handleDownload = (fileObj) => {
+    if (!fileObj.blob) return;
+    const url = URL.createObjectURL(fileObj.blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const ext = fileObj.blob.type.split('/')[1] || 'jpg';
+    a.download = fileObj.file.name.replace(/\.[^.]+$/, '') + `-compressed.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
+  // Stats derivation
+  const totalOriginal = files.reduce((acc, f) => acc + f.originalSize, 0);
+  const totalCompressed = files.filter(f => f.status === 'done').reduce((acc, f) => acc + f.compressedSize, 0);
+  const completedCount = files.filter(f => f.status === 'done').length;
+  const savingsPct = totalOriginal > 0 && totalCompressed > 0 ? Math.round((1 - totalCompressed / (files.filter(f => f.status === 'done').reduce((a, f) => a + f.originalSize, 0))) * 100) : 0;
+
+  const handleDragEnter = (e) => { e.preventDefault(); setIsDragOver(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); setIsDragOver(false); };
   const handleDrop = (e) => {
     e.preventDefault();
-    e.currentTarget.style.borderColor = darkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(99, 102, 241, 0.3)";
-    handleImageChange({ dataTransfer: e.dataTransfer });
+    setIsDragOver(false);
+    handleFilesAdded(e.dataTransfer.files);
   };
 
   return (
-    <div className="resizer-container">
-      <div className="resizer-header">
-        <h1 style={{ color: darkMode ? "#c4b5fd" : "#6366f1" }}>Image Compressor</h1>
-        <p style={{ color: darkMode ? "#cbd5e1" : "#666" }}>Compress images while maintaining quality</p>
+    <div className="page-wrap">
+
+      {/* 1. HERO */}
+      <div className={styles.toolHero}>
+        <div className={styles.breadcrumb}>
+          <Link to="/">Home</Link><span>›</span>
+          <a href="#tools">Tools</a><span>›</span>
+          <span style={{ color: "var(--text-soft)" }}>Image Compressor</span>
+        </div>
+        <h1 className={styles.heroH1}>Image <em>Compressor</em></h1>
+        <p className={styles.heroP}>Compress multiple images at once — reduce file size by up to 80% while keeping quality sharp. Batch processing, fully in-browser, zero uploads.</p>
+        <div className={styles.badges}>
+          <div className={styles.badge}><Zap size={14} /> Batch Processing</div>
+          <div className={styles.badge}><Lock size={14} /> 100% Private</div>
+          <div className={`${styles.badge} ${styles.orange}`}>Up to 80% smaller</div>
+        </div>
       </div>
 
-      <div className="resizer-card" style={{ 
-        background: darkMode ? "rgba(15, 23, 42, 0.9)" : "rgba(255, 255, 255, 0.8)",
-        color: darkMode ? "#e2e8f0" : "#111827"
-      }}>
-        {/* Upload Section */}
-        <div className="upload-section"
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDrop}
-          style={{ transition: "all 0.3s ease" }}
-        >
-          <label htmlFor="file-input" className="file-label">
-            <div className="file-input-wrapper" style={{
-              borderColor: darkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(99, 102, 241, 0.3)",
-              background: darkMode ? "rgba(99, 102, 241, 0.1)" : "rgba(99, 102, 241, 0.05)",
-            }}>
-              <Zap 
-                size={40} 
-                color={darkMode ? "#c4b5fd" : "#6366f1"}
-                className="upload-icon"
-              />
-              <span className="upload-text">
-                {preview ? "Change Image" : "Select Image"}
-              </span>
-              <span className="upload-hint">or drag and drop</span>
-            </div>
-          </label>
-          <input
-            id="file-input"
-            type="file"
-            accept="image/*"
-            className="file-input"
-            onChange={handleImageChange}
-          />
+      {/* 2. STATS */}
+      <div className={styles.statsRow}>
+        <div className={styles.statBox}>
+          <div className={styles.statBig}>{files.length}</div>
+          <div className={styles.statSm}>Files Loaded</div>
         </div>
+        <div className={styles.statBox}>
+          <div className={styles.statBig}>{formatFileSize(totalOriginal).split(' ')[0]} <em>{formatFileSize(totalOriginal).split(' ')[1] || 'B'}</em></div>
+          <div className={styles.statSm}>Original Size</div>
+        </div>
+        <div className={styles.statBox}>
+          <div className={styles.statBig}>{totalCompressed > 0 ? formatFileSize(totalCompressed).split(' ')[0] : '0'} <em>{totalCompressed > 0 ? (formatFileSize(totalCompressed).split(' ')[1] || 'B') : 'KB'}</em></div>
+          <div className={styles.statSm}>Compressed Size</div>
+        </div>
+        <div className={styles.statBox}>
+          <div className={styles.statBig}><em>{savingsPct}%</em></div>
+          <div className={styles.statSm}>Space Saved</div>
+        </div>
+      </div>
 
-        {/* Preview & File Info */}
-        {preview && (
-          <div className="preview-section">
-            <div className="preview">
-              <img src={preview} alt="preview" />
-            </div>
-            <div className="file-info">
-              <p><strong>Original Size:</strong> {formatFileSize(originalSize)}</p>
-              <p><strong>Estimated Size:</strong> {formatFileSize(estimatedSize)}
-              {originalSize > 0 && ` (${((1 - estimatedSize / originalSize) * 100).toFixed(1)}% smaller)`}
-              </p>
-            </div>
-          </div>
-        )}
+      {/* 3. DROP ZONE */}
+      <div
+        className={`${styles.dropZone} ${isDragOver ? styles.drag : ''}`}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+      >
+        <input
+          type="file"
+          ref={fileInputRef}
+          className={styles.dropInput}
+          accept="image/*"
+          multiple
+          onChange={(e) => handleFilesAdded(e.target.files)}
+        />
+        <span className={styles.dropIcon}>⚡</span>
+        <div className={styles.dropTitle}>Drop images here — batch supported</div>
+        <div className={styles.dropSub}>Drag multiple images at once, or click to select files</div>
+        <button className={styles.btnBrowse} onClick={() => fileInputRef.current.click()}>
+          <Plus size={16} /> Browse Files
+        </button>
+        <div className={styles.multiNote}>Supports JPG, PNG, WebP · Multiple files at once</div>
+      </div>
 
-        {/* Compression Presets */}
-        {preview && (
-          <div className="presets-section">
-            <label style={{ color: darkMode ? "#cbd5e1" : "#666", marginBottom: "8px", display: "block", fontSize: "12px", fontWeight: "600", textTransform: "uppercase" }}>
-              Quick Presets
-            </label>
-            <div className="presets-grid">
-              {COMPRESSION_PRESETS.map((preset) => (
-                <button
-                  key={preset.name}
-                  className="preset-btn"
-                  onClick={() => applyPreset(preset)}
-                  style={{
-                    background: darkMode ? "rgba(99, 102, 241, 0.2)" : "rgba(99, 102, 241, 0.1)",
-                    color: darkMode ? "#c4b5fd" : "#6366f1",
-                    border: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(99, 102, 241, 0.2)"}`,
-                    cursor: "pointer",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    fontWeight: "500",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = darkMode ? "rgba(99, 102, 241, 0.3)" : "rgba(99, 102, 241, 0.15)";
-                    e.target.style.borderColor = darkMode ? "rgba(139, 92, 246, 0.6)" : "rgba(99, 102, 241, 0.4)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = darkMode ? "rgba(99, 102, 241, 0.2)" : "rgba(99, 102, 241, 0.1)";
-                    e.target.style.borderColor = darkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(99, 102, 241, 0.2)";
-                  }}
-                >
-                  {preset.name}<br/><small>{preset.level}%</small>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      {globalError && (
+        <div className={`${styles.alertMsg} ${styles.alertError}`} style={{ maxWidth: '1200px', margin: '20px auto 0' }}>
+          <AlertCircle size={16} /> {globalError}
+        </div>
+      )}
 
-        {/* Format & Quality */}
-        <div className="format-quality-section">
-          <div className="size-input-group">
-            <label htmlFor="format-select" style={{ color: darkMode ? "#cbd5e1" : "#666" }}>Output Format</label>
-            <select
-              id="format-select"
-              value={format}
-              onChange={handleFormatChange}
-              disabled={loading}
-              style={{
-                padding: "10px 12px",
-                border: `2px solid ${darkMode ? "rgba(99, 102, 241, 0.3)" : "rgba(99, 102, 241, 0.2)"}`,
-                borderRadius: "10px",
-                fontSize: "15px",
-                transition: "all 0.3s ease",
-                background: darkMode ? "rgba(30, 27, 75, 0.6)" : "rgba(255, 255, 255, 0.5)",
-                color: darkMode ? "#e2e8f0" : "#111827",
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.5 : 1,
-              }}
-            >
-              <option value="webp">WEBP (Best)</option>
-              <option value="jpeg">JPG (Compatible)</option>
-              <option value="png">PNG (Lossless)</option>
-            </select>
-          </div>
-
-          <div className="quality-slider">
-            <label style={{ color: darkMode ? "#cbd5e1" : "#666" }}>Quality: {quality}%</label>
+      {/* 4. SETTINGS BAR */}
+      {files.length > 0 && (
+        <div className={styles.settingsBar}>
+          <div className={styles.sbGroup}>
+            <span className={styles.sbLabel}>Quality</span>
             <input
               type="range"
-              min="1"
+              className={styles.rangeInput}
+              min="10"
               max="100"
               value={quality}
               onChange={handleQualityChange}
-              disabled={loading}
-              style={{
-                width: "100%",
-                cursor: "pointer",
-                accentColor: "#6366f1"
-              }}
             />
+            <span className={styles.rangeVal}>{quality}%</span>
+          </div>
+          <div className={styles.sbGroup} style={{ flex: 0 }}>
+            <span className={styles.sbLabel}>Format</span>
+            <select className={styles.sSelect} value={format} onChange={handleFormatChange}>
+              <option value="same">Same as input</option>
+              <option value="webp">Convert to WebP</option>
+              <option value="jpeg">Convert to JPG</option>
+            </select>
+          </div>
+          <button
+            className={styles.compressAllBtn}
+            onClick={handleCompressAll}
+            disabled={files.every(f => f.status === 'done' || f.status === 'compressing')}
+          >
+            {files.some(f => f.status === 'compressing') ? <><Loader size={16} className="spinner" /> Compressing...</> : "Compress All →"}
+          </button>
+        </div>
+      )}
+
+      {/* 5. PRESETS */}
+      {files.length > 0 && (
+        <div style={{ maxWidth: "1200px", margin: "0 auto 20px" }}>
+          <div className={styles.presetsGrid}>
+            {COMPRESSION_PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                className={styles.presetBtn}
+                onClick={() => applyPreset(preset)}
+              >
+                {preset.name}<br /><small>{preset.level}%</small>
+              </button>
+            ))}
           </div>
         </div>
+      )}
 
-        {/* Messages */}
-        {error && <div className="error-message" style={{ color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.3)", background: darkMode ? "rgba(127, 29, 29, 0.2)" : "rgba(239, 68, 68, 0.1)" }}>
-          <AlertCircle size={18} style={{ display: "inline", marginRight: "8px" }} />
-          {error}
-        </div>}
-        {success && <div className="success-message" style={{ color: "#22c55e", borderColor: "rgba(34, 197, 94, 0.3)", background: darkMode ? "rgba(20, 83, 45, 0.2)" : "rgba(34, 197, 94, 0.1)" }}>
-          <CheckCircle size={18} style={{ display: "inline", marginRight: "8px" }} />
-          {success}
-        </div>}
+      {/* 6. FILE LIST */}
+      <div className={styles.fileList}>
+        {files.map(file => (
+          <div key={file.id} className={styles.fileItem}>
+            <img className={styles.fileThumb} src={file.preview} alt="Thumb" />
+            <div className={styles.fileInfo}>
+              <div className={styles.fileName}>{file.file.name}</div>
+              <div className={styles.fileSizes}>
+                <span>Original: <strong style={{ color: "var(--text-soft)" }}>{formatFileSize(file.originalSize)}</strong></span>
+                {file.status === 'done' && (
+                  <span>→ Compressed: <strong style={{ color: "var(--accent)" }}>{formatFileSize(file.compressedSize)}</strong> <span className={styles.fileSaving}>({Math.round((1 - file.compressedSize / file.originalSize) * 100)}% saved)</span></span>
+                )}
+                {file.status === 'pending' && (
+                  <span>→ Estimated: <strong>{formatFileSize(estimateSize(file.originalSize, format, quality))}</strong></span>
+                )}
+              </div>
+              <div className={styles.fileProgress}>
+                <div className={styles.fileProgFill} style={{ width: `${file.progress}%` }}></div>
+              </div>
+            </div>
 
-        {/* Compress Button */}
-        <button 
-          className={`resize-btn ${loading ? "loading" : ""}`}
-          onClick={handleCompress}
-          disabled={loading}
-          style={{
-            background: loading ? "rgba(99, 102, 241, 0.6)" : "linear-gradient(135deg, #6366f1, #8b5cf6)",
-            color: "#fff"
-          }}
-        >
-          {loading ? (
-            <>
-              <Loader size={18} className="spinner" />
-              Compressing...
-            </>
-          ) : (
-            <>
-              <Zap size={18} /> Compress & Download
-            </>
-          )}
-        </button>
+            <span className={`${styles.fileStatus} ${file.status === 'done' ? styles.statusDone : file.status === 'compressing' ? styles.statusCompressing : file.status === 'error' ? styles.statusError : styles.statusPending}`}>
+              {file.status === 'done' ? '✓ Done' : file.status === 'compressing' ? 'Compressing...' : file.status === 'error' ? 'Error' : 'Pending'}
+            </span>
+
+            <button
+              className={styles.fileDl}
+              disabled={file.status !== 'done'}
+              onClick={() => handleDownload(file)}
+            >
+              <Download size={14} /> Download
+            </button>
+
+            <button
+              className={styles.fileDl}
+              style={{ padding: '7px', color: '#ff4757', borderColor: 'transparent' }}
+              onClick={() => removeFile(file.id)}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ))}
       </div>
+
+      <div className="ad-row" style={{ marginTop: "32px" }}>
+        <AdUnit format="728x90" label="Advertisement · Leaderboard" />
+      </div>
+
+      {/* 7. TIPS */}
+      <div className={styles.tipsSec}>
+        <div className="sec-label">Pro Tips</div>
+        <h2 className="sec-title">Get the best <span className="ac">results</span></h2>
+        <div className={styles.tipsGrid}>
+          <div className={styles.tipCard}>
+            <div className={styles.tipIcon}><Target size={20} strokeWidth={1.8} /></div>
+            <div className={styles.tipTitle}>Use 70-80% Quality</div>
+            <div className={styles.tipTxt}>The human eye can barely tell the difference at 75% quality, but you save 40-60% file size. Sweet spot for web use.</div>
+          </div>
+          <div className={styles.tipCard}>
+            <div className={styles.tipIcon}><Globe size={20} strokeWidth={1.8} /></div>
+            <div className={styles.tipTitle}>Convert to WebP</div>
+            <div className={styles.tipTxt}>WebP images are 25-35% smaller than JPG at the same quality. All modern browsers support it.</div>
+          </div>
+          <div className={styles.tipCard}>
+            <div className={styles.tipIcon}><Package size={20} strokeWidth={1.8} /></div>
+            <div className={styles.tipTitle}>Batch Everything</div>
+            <div className={styles.tipTxt}>Drop all images at once and compress in one click. No need to process one by one.</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
