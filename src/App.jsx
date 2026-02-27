@@ -3,8 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
 
-// Lazy load pages for better performance (LCP optimization)
-const Home = lazy(() => import("./pages/Home"));
+import Home from "./pages/Home";
+
+// Lazy load other tool pages for better performance (LCP optimization)
 const ImageResizer = lazy(() => import("./pages/ImageResizer"));
 const ImageConverter = lazy(() => import("./pages/ImageConverter"));
 const ImageCompressor = lazy(() => import("./pages/ImageCompressor"));

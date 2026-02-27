@@ -21,10 +21,60 @@
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap"
     rel="stylesheet">
 
+  <!-- Critical CSS for LCP -->
+  <style>
+    :root {
+      --bg: #080C17;
+      --accent: #10E888;
+      --accent2: #38BDF8;
+      --text: #F0F4FF;
+    }
+
+    body {
+      background: var(--bg);
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .lcp-pre {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100vh;
+      padding: 0 48px;
+    }
+
+    .lcp-h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(2.8rem, 6.5vw, 5.4rem);
+      font-weight: 800;
+      line-height: 1.06;
+      margin-bottom: 20px;
+      color: var(--text);
+    }
+
+    .lcp-grad {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Zero-JS Pre-rendering: Shown immediately before React hydrates -->
+    <div class="lcp-pre">
+      <h1 class="lcp-h1">
+        <span class="lcp-grad">Transform Images</span><br>
+        Instantly with<br>
+        Precision AI
+      </h1>
+    </div>
+  </div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 
