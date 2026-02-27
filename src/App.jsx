@@ -1,28 +1,40 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
-import Home from "./pages/Home";
-import ImageResizer from "./pages/ImageResizer";
-import ImageConverter from "./pages/ImageConverter";
-import ImageCompressor from "./pages/ImageCompressor";
-import ImageToPdf from "./pages/ImageToPdf";
-import QRGenerator from "./pages/QRGenerator";
-import BackgroundRemover from "./pages/BackgroundRemover";
+
+// Lazy load pages for better performance (LCP optimization)
+const Home = lazy(() => import("./pages/Home"));
+const ImageResizer = lazy(() => import("./pages/ImageResizer"));
+const ImageConverter = lazy(() => import("./pages/ImageConverter"));
+const ImageCompressor = lazy(() => import("./pages/ImageCompressor"));
+const ImageToPdf = lazy(() => import("./pages/ImageToPdf"));
+const QRGenerator = lazy(() => import("./pages/QRGenerator"));
+const BackgroundRemover = lazy(() => import("./pages/BackgroundRemover"));
+
+// Loading fallback for lazy routes
+const PageLoader = () => (
+  <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="loader-dots">Loading tools...</div>
+  </div>
+);
 
 function App() {
   return (
     <Router>
       <ScrollToTop />
       <Layout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/resize" element={<ImageResizer />} />
-          <Route path="/convert" element={<ImageConverter />} />
-          <Route path="/compress" element={<ImageCompressor />} />
-          <Route path="/image-to-pdf" element={<ImageToPdf />} />
-          <Route path="/qr-generator" element={<QRGenerator />} />
-          <Route path="/bg-remover" element={<BackgroundRemover />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/resize" element={<ImageResizer />} />
+            <Route path="/convert" element={<ImageConverter />} />
+            <Route path="/compress" element={<ImageCompressor />} />
+            <Route path="/image-to-pdf" element={<ImageToPdf />} />
+            <Route path="/qr-generator" element={<QRGenerator />} />
+            <Route path="/bg-remover" element={<BackgroundRemover />} />
+          </Routes>
+        </Suspense>
       </Layout>
     </Router>
   );
