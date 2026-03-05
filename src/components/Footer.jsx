@@ -54,7 +54,7 @@ function Footer() {
       </div>
 
       <div className={styles.footBottom}>
-        <span>&copy; {currentYear} PixelMind. All rights reserved.</span>
+        <span>&copy; {currentYear} AI Genzox. All rights reserved.</span>
         <div className={styles.footMade}>Built with <em>✦</em> for creators</div>
       </div>
     </footer>

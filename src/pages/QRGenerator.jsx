@@ -118,7 +118,7 @@ function QRGenerator() {
     // For now we will download PNG.
     const a = document.createElement("a");
     a.href = qrCodeUrl;
-    a.download = `qrcode-pixelmind.${format}`;
+    a.download = `qrcode-ai-genzox.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

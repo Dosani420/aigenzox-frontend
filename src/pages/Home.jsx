@@ -199,7 +199,7 @@ function Home() {
 
       {/* 4. FEATURES SEC */}
       <section className="sec">
-        <div className="sec-label">Why PixelMind</div>
+        <div className="sec-label">Why AI Genzox</div>
         <h2 className="sec-title" style={{ marginBottom: "44px" }}>Built for <span className="ac">Speed</span> &amp; Privacy</h2>
 
         <div className={styles.featBox}>
@@ -219,7 +219,7 @@ function Home() {
                 <div className={styles.tBar}>
                   <div className={`${styles.td} ${styles.r}`}></div><div className={`${styles.td} ${styles.y}`}></div><div className={`${styles.td} ${styles.g2}`}></div>
                 </div>
-                <div><span className={styles.tPath}>pixelmind/</span> <span className={styles.tCmd}>process</span></div>
+                <div><span className={styles.tPath}>aigenzox/</span> <span className={styles.tCmd}>process</span></div>
                 <div><span className={styles.tOut}>→ WASM engine ready</span></div>
                 <div><span className={styles.tOut}>→ Reading file buffer...</span></div>
                 <div><span className={styles.tOut}>→ PNG → WebP (92%)</span></div>
