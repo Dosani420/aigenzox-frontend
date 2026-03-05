@@ -15,7 +15,7 @@ function Footer() {
         <div className={styles.footBrand}>
           <Link to="/" className={styles.logo} style={{ fontSize: "1.05rem" }}>
             <div className={styles.logoIcon} style={{ width: "26px", height: "26px", fontSize: "0.75rem" }}>✦</div>
-            Pixel<em>Mind</em>
+            AI <em>Genzox</em>
           </Link>
           <p>Free AI image tools for creators, developers, and everyone in between. No sign-up, no nonsense.</p>
         </div>

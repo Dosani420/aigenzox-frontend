@@ -10,7 +10,7 @@ function Navbar() {
     <nav className={styles.nav}>
       <NavLink to="/" className={styles.logo}>
         <div className={styles.logoIcon}>✦</div>
-        Pixel<em>Mind</em>
+        AI <em>Genzox</em>
       </NavLink>
 
       <ul id="nav-menu" className={styles.navLinks}>
